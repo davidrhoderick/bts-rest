@@ -1,8 +1,9 @@
 import { serve } from "@hono/node-server";
 import { swaggerUI } from "@hono/swagger-ui";
 import { z, createRoute, OpenAPIHono } from "@hono/zod-openapi";
+import { uuidv7 } from "uuidv7";
 
-const ParamsSchema = z.object({
+const UserParamsSchema = z.object({
   id: z
     .string()
     .min(3)
@@ -13,6 +14,15 @@ const ParamsSchema = z.object({
       },
       example: "1212121",
     }),
+});
+
+const UserBodySchema = z.object({
+  name: z.string().openapi({
+    example: "John Doe",
+  }),
+  age: z.number().openapi({
+    example: 42,
+  }),
 });
 
 const UserSchema = z
@@ -29,11 +39,31 @@ const UserSchema = z
   })
   .openapi("User");
 
-const route = createRoute({
+const getUserRoute = createRoute({
   method: "get",
   path: "/users/{id}",
   request: {
-    params: ParamsSchema,
+    params: UserParamsSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: UserSchema,
+        },
+      },
+      description: "Retrieve the user",
+    },
+  },
+});
+
+const createUserRoute = createRoute({
+  method: "post",
+  path: "/users",
+  request: {
+    body: {
+      content: { "application/json": { schema: UserBodySchema } },
+    },
   },
   responses: {
     200: {
@@ -49,7 +79,19 @@ const route = createRoute({
 
 const app = new OpenAPIHono();
 
-app.openapi(route, (c) => {
+app.openapi(createUserRoute, (c) => {
+  const { age, name } = c.req.valid("json");
+  return c.json(
+    {
+      id: uuidv7(),
+      age,
+      name,
+    },
+    200
+  );
+});
+
+app.openapi(getUserRoute, (c) => {
   const { id } = c.req.valid("param");
   return c.json(
     {
@@ -57,7 +99,7 @@ app.openapi(route, (c) => {
       age: 20,
       name: "Ultra-man",
     },
-    200 // You should specify the status code even if it is 200.
+    200
   );
 });
 
@@ -71,11 +113,11 @@ app.doc("/doc", {
 });
 
 app.get(
-  '/ui',
+  "/ui",
   swaggerUI({
-    url: '/doc'
+    url: "/doc",
   })
-)
+);
 
 const port = 3000;
 console.log(`Server is running on http://localhost:${port}`);
