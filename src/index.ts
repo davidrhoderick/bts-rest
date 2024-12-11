@@ -4,12 +4,12 @@ import { z, createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { uuidv7 } from "uuidv7";
 
 const UserParamsSchema = z.object({
-  id: z
+  userId: z
     .string()
     .min(3)
     .openapi({
       param: {
-        name: "id",
+        name: "userId",
         in: "path",
       },
       example: "1212121",
@@ -17,7 +17,7 @@ const UserParamsSchema = z.object({
 });
 
 const UserBodySchema = z.object({
-  name: z.string().openapi({
+  fullName: z.string().openapi({
     example: "John Doe",
   }),
   age: z.number().openapi({
@@ -27,10 +27,10 @@ const UserBodySchema = z.object({
 
 const UserSchema = z
   .object({
-    id: z.string().openapi({
+    userId: z.string().openapi({
       example: "123",
     }),
-    name: z.string().openapi({
+    fullName: z.string().openapi({
       example: "John Doe",
     }),
     age: z.number().openapi({
@@ -41,7 +41,7 @@ const UserSchema = z
 
 const getUserRoute = createRoute({
   method: "get",
-  path: "/users/{id}",
+  path: "/users/{userId}",
   request: {
     params: UserParamsSchema,
   },
@@ -80,24 +80,24 @@ const createUserRoute = createRoute({
 const app = new OpenAPIHono();
 
 app.openapi(createUserRoute, (c) => {
-  const { age, name } = c.req.valid("json");
+  const { age, fullName } = c.req.valid("json");
   return c.json(
     {
-      id: uuidv7(),
+      userId: uuidv7(),
       age,
-      name,
+      fullName,
     },
     200
   );
 });
 
 app.openapi(getUserRoute, (c) => {
-  const { id } = c.req.valid("param");
+  const { userId } = c.req.valid("param");
   return c.json(
     {
-      id,
+      userId,
       age: 20,
-      name: "Ultra-man",
+      fullName: "Ultra-man",
     },
     200
   );
